@@ -163,7 +163,8 @@
             <!-- Bagian Bawah -->
             <div class="relative z-10 text-center w-full flex flex-col items-center shrink-0">
                 <p class="text-[10px] tracking-widest text-sl-dark mb-1 uppercase font-semibold reveal reveal-up delay-3">Kepada YTH</p>
-                <p class="text-[14px] font-bold font-arima text-sl-green mb-5 reveal reveal-up delay-4">Bapak Ibu Tamu Undangan</p>
+                <!-- ID DITAMBAHKAN DI SINI UNTUK NAMA TAMU -->
+                <p id="guest-name-display" class="text-[14px] font-bold font-arima text-sl-green mb-5 reveal reveal-up delay-4 px-4 text-center">Bapak Ibu Tamu Undangan</p>
                 <button onclick="openInvitation()" class="btn-sage min-w-[180px] uppercase font-bold reveal reveal-up delay-4">Buka Undangan</button>
             </div>
         </div>
@@ -250,7 +251,7 @@
                 </div>
             </section>
 
-            <!-- 5. KADO / HADIAH (HALAMAN BARU YANG DITAMBAHKAN) -->
+            <!-- 5. KADO / HADIAH -->
             <section id="hadiah" class="slide-section anim-group">
                 <video autoplay loop muted playsinline class="bg-video">
                     <source src="https://be.satu.love/pictures/picture_16904538908885nwb62qf.mp4" type="video/mp4">
@@ -300,7 +301,7 @@
                 </div>
             </section>
 
-            <!-- 7. PENUTUP (HALAMAN BARU) -->
+            <!-- 7. PENUTUP -->
             <section id="penutup" class="slide-section anim-group">
                 <video autoplay loop muted playsinline class="bg-video">
                     <source src="https://be.satu.love/pictures/picture_16904538908885nwb62qf.mp4" type="video/mp4">
@@ -368,14 +369,11 @@
         </div>
     </div>
 
-    <!-- SCRIPT LOGIKA UCAPAN & FIREBASE (DIPERBAIKI UNTUK GOOGLE SITES) -->
+    <!-- SCRIPT LOGIKA UCAPAN & FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { initializeFirestore, memoryLocalCache, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ==========================================
-        // CONFIG FIREBASE MILIK ANDA
-        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyAgzrtiK1u18CdmO-ezqV9nR_yf5ncw7Zo",
             authDomain: "undangan-inas-fatinah.firebaseapp.com",
@@ -385,7 +383,6 @@
             appId: "1:430235948130:web:24ac8b97410d2d5d4bed3b",
             measurementId: "G-BRNZ1ZG3KZ"
         };
-        // ==========================================
 
         let db = null;
         const cont = document.getElementById('messages-container');
@@ -402,24 +399,19 @@
         const initFirebase = () => {
             try {
                 const app = initializeApp(firebaseConfig);
-                
-                // KUNCI UTAMA: Mematikan penyimpanan lokal Firebase agar tidak diblokir oleh Google Sites
                 db = initializeFirestore(app, {
                     localCache: memoryLocalCache()
                 });
-
                 const ref = collection(db, 'ucapan_tamu');
-                
                 onSnapshot(ref, (snap) => {
                     const msgs = [];
                     snap.forEach(d => msgs.push(d.data()));
-                    msgs.sort((a,b) => b.timestamp - a.timestamp); // Urutkan dari yang terbaru
+                    msgs.sort((a,b) => b.timestamp - a.timestamp); 
                     renderMessages(msgs);
                 }, (error) => {
                     console.error("Gagal memuat ucapan:", error);
                     cont.innerHTML = '<p class="text-center text-[10px] text-red-500 pt-6">Gagal memuat data. Pastikan Aturan Firestore (Rules) disetel ke Allow Read/Write.</p>';
                 });
-
             } catch(e) {
                 console.error("Firebase Error:", e);
                 cont.innerHTML = '<p class="text-center text-[10px] opacity-50 pt-6">Sistem database terblokir.</p>';
@@ -432,24 +424,20 @@
         if(form) {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                
                 const btn = document.getElementById('submit-btn');
                 const originalText = btn.innerText;
                 btn.innerText = "Mengirim...";
-
                 if (!db) {
                     btn.innerText = "Error DB";
                     setTimeout(() => btn.innerText = originalText, 2500);
                     return;
                 }
-
                 const newMsg = {
                     name: document.getElementById('guest-name').value,
                     attendance: document.getElementById('guest-attendance').value,
                     message: document.getElementById('guest-message').value,
                     timestamp: Date.now()
                 };
-                
                 try {
                     await addDoc(collection(db, 'ucapan_tamu'), newMsg);
                     form.reset();
@@ -464,6 +452,25 @@
     </script>
 
     <script>
+        // --- SCRIPT BACA NAMA TAMU DARI LINK ---
+        document.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const guestName = urlParams.get('to');
+            
+            if (guestName) {
+                // 1. Ubah nama di cover undangan
+                const displayElement = document.getElementById('guest-name-display');
+                if (displayElement) {
+                    displayElement.innerText = guestName;
+                }
+                // 2. Isi otomatis form RSVP dengan nama tamu
+                const rsvpInput = document.getElementById('guest-name');
+                if (rsvpInput) {
+                    rsvpInput.value = guestName;
+                }
+            }
+        });
+
         function openInvitation() {
             const cover = document.getElementById('cover-screen');
             const mainScroll = document.getElementById('main-scroll');
@@ -476,7 +483,6 @@
             
             bgMusic.play().catch(e => console.log("Music blocked"));
             
-            // Putar semua video agar memancing browser
             document.querySelectorAll('video').forEach(vid => {
                 vid.play().catch(e => {});
             });
@@ -495,8 +501,6 @@
                     if (entry.isIntersecting) {
                         entry.target.classList.add('is-visible');
                         if (video) video.play().catch(e => {});
-                        
-                        // Bagian ini sekarang hanya untuk animasi saja karena navbar bawah sudah dihapus
                     } else {
                         entry.target.classList.remove('is-visible');
                         if (video) video.pause(); 
@@ -526,11 +530,9 @@
             playing = !playing;
         });
 
-        // --- SCRIPT TAMBAHAN UNTUK MODAL KADO & AMPLOP ---
         function openModal(id) {
             const modal = document.getElementById(id);
             modal.classList.remove('hidden');
-            // Timeout kecil agar transisi (fade/scale) bisa berjalan mulus
             setTimeout(() => {
                 modal.classList.remove('opacity-0');
                 const innerDiv = modal.querySelector('div');
@@ -545,7 +547,6 @@
             const innerDiv = modal.querySelector('div');
             innerDiv.classList.remove('scale-100');
             innerDiv.classList.add('scale-95');
-            // Tunggu animasi selesai baru di-hide
             setTimeout(() => {
                 modal.classList.add('hidden');
             }, 300);
